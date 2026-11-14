@@ -108,7 +108,7 @@ static inline bool isFiniteF(float v) {
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  Serial.println(F("x,y,th,vL,vR,wL,wR,bat,temp,fb_age,wd,or,imu_yaw"));
+  Serial.println(F("x,y,th,vL,vR,wL,wR,bat,temp,fb_age,wd,or,imu_yaw,gyro_z"));
 
   HoverSerial.begin(HOVER_SERIAL_BAUD);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -345,7 +345,8 @@ void printPose(unsigned long timeNow) {
   Serial.print(fbAge);      Serial.print(',');
   Serial.print(wd ? 1 : 0); Serial.print(',');
   Serial.print(odomResetCount); Serial.print(',');
-  Serial.println(mpu6050.getAngleZ() * (M_PI / 180.0f), 4);   // yaw in radians   // yaw in degrees
+  Serial.print(mpu6050.getAngleZ() * (M_PI / 180.0f), 4);   // yaw in radians
+  Serial.println(mpu6050.getGyroZ() * (M_PI / 180.0f), 4);
 }
 
 // ---- loop ------------------------------------------------------------------

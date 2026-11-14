@@ -24,6 +24,7 @@ class RobotState:
     arduino_watchdog: bool
     odometry_resets: int
     imu_yaw: float 
+    gyro_z: float
     received_at: float  # monotonic clock
 
 
@@ -104,7 +105,7 @@ class JidennaDriver:
                     break
                 line = port.readline().decode("ascii", errors="ignore").strip()
                 parts = line.split(",")
-                if len(parts) != 13:
+                if len(parts) != 14:
                     continue  
                 numbers = [float(part) for part in parts]
                 if not all(math.isfinite(n) for n in numbers):
@@ -112,8 +113,13 @@ class JidennaDriver:
                 if any(numbers[i] != int(numbers[i]) for i in (9, 10, 11)):
                     continue
                 state = RobotState(
-                    *numbers[:9], int(numbers[9]), bool(int(numbers[10])),
-                    int(numbers[11]), numbers[12], time.monotonic()
+                    *numbers[:9],
+                    int(numbers[9]),
+                    bool(int(numbers[10])),
+                    int(numbers[11]),
+                    numbers[12],
+                    numbers[13], 
+                    time.monotonic()
                 )
                 with self._lock:
                     self._state = state
@@ -179,9 +185,21 @@ class JidennaDriver:
         return {"x": state.x, "y": state.y, "theta": state.theta} if state else None
 
     def get_imu_gyro(self) -> Optional[dict]:
-        """Return integrated MPU6050 yaw (radians), not raw gyro rates."""
+        """
+        Return MPU6050 orientation and angular velocity.
+
+        yaw: radians
+        gyro_z: radians/second
+        """
         state = self.get_state()
-        return {"yaw": state.imu_yaw} if state else None
+
+        if state is None:
+            return None
+
+        return {
+            "yaw": state.imu_yaw,
+            "gyro_z": state.gyro_z
+        }
 
     def get_battery_info(self) -> Optional[dict]:
         """Return measured hoverboard battery voltage in volts."""
