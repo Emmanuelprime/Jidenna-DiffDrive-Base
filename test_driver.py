@@ -1,7 +1,7 @@
 from jidenna import JidennaDriver
 import time
 
-robot = JidennaDriver(port="COM9")
+robot = JidennaDriver(port="/dev/ttyUSB0")
 
 try:
     robot.connect()
