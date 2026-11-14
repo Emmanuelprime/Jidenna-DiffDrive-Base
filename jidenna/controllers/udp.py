@@ -59,7 +59,7 @@ class UDPJoystickController:
                     axes = self._parse(payload)
                     # Sign conventions: positive ly = forward, positive rx = left.
                     v = axes['ly'] * self.max_linear * (-1 if self.invert_linear else 1)
-                    w = axes['rx'] * self.max_angular * (-1 if self.invert_angular else 1)
+                    w = axes['rx'] * self.max_angular * (1 if self.invert_angular else -1)
                     self.robot.set_velocity(v, w)
                     self._last_packet = time.monotonic()
                     if self._last_sender != address[0]:
