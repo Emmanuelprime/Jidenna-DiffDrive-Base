@@ -1,21 +1,20 @@
-from jidenna import JidennaDriver
 import time
+from jidenna import JidennaDriver
 
-robot = JidennaDriver(port="/dev/ttyUSB0")
+with JidennaDriver(port="/dev/ttyUSB0",startup_delay=10.0) as robot:
 
-try:
-    robot.connect()
+    try:
+        while True:
+            imu = robot.get_imu_gyro()
+            status = robot.get_status()
 
-    while True:
-        odom = robot.get_odometry_data()
-        imu = robot.get_imu_gyro()
-        battery = robot.get_battery_info()
+            if imu and status["telemetry_fresh"]:
+                print(
+                    f"Yaw: {imu['yaw']:.4f} rad | "
+                    f"Gyro Z: {imu['gyro_z']:.4f} rad/s"
+                )
 
-        print("Odometry:", odom)
-        print("IMU:", imu)
-        print("Battery:", battery)
+            time.sleep(0.1)
 
-        time.sleep(0.5)
-
-finally:
-    robot.disconnect()
+    except KeyboardInterrupt:
+        pass
