@@ -346,6 +346,7 @@ void printPose(unsigned long timeNow) {
   Serial.print(wd ? 1 : 0); Serial.print(',');
   Serial.print(odomResetCount); Serial.print(',');
   Serial.print(mpu6050.getAngleZ() * (M_PI / 180.0f), 4);   // yaw in radians
+  Serial.print(',');
   Serial.println(mpu6050.getGyroZ() * (M_PI / 180.0f), 4);
 }
 
