@@ -1,10 +1,13 @@
 
+import math
 import time
 
 from jidenna import (
     JidennaDriver,
     UDPJoystickController,
 )
+
+from jidenna.localization import Odometry
 
 
 def main():
@@ -19,38 +22,80 @@ def main():
         with UDPJoystickController(
             robot=robot,
             port=4210,
-            max_linear=2.1,
+            max_linear=0.65,
             max_angular=2.49,
-            invert_linear=False,
             invert_angular=True,
             timeout=0.5,
             command_rate=20.0,
         ) as joystick:
 
-            print("\nJoystick controller started")
-            print("Press Ctrl+C to stop\n")
+            with Odometry(
+                robot=robot,
+                wheel_separation=0.521,
+                update_rate=20.0,
+            ) as odom:
 
-            while True:
-                joy = joystick.get_status()
-                state = robot.get_state()
+                print("\nJIDENNA ODOMETRY MONITOR")
+                print("=" * 75)
+                print("Press Ctrl+C to stop\n")
 
-                print(
-                    f"JOY: {joy['velocity']} | "
-                    f"Active: {joy['active']} | "
-                    f"Packets: {joy['packet_count']} | "
-                    f"Age: {joy['packet_age_s']}"
-                )
+                while True:
 
-                if state:
+                    # Odometry state
+                    pose = odom.get_state()
+
+                    # Raw Arduino telemetry
+                    raw = robot.get_state()
+
+                    # Joystick state
+                    joy = joystick.get_status()
+
+                    print("\n" + "=" * 75)
+
+                    print("ROBOT POSE")
                     print(
-                        f"LEFT: {state.left_speed:.3f} | "
-                        f"RIGHT: {state.right_speed:.3f} | "
-                        f"YAW: {state.imu_yaw_deg:.2f}"
+                        f"X: {pose.x:+.3f} m | "
+                        f"Y: {pose.y:+.3f} m | "
+                        f"Theta: "
+                        f"{math.degrees(pose.theta):+.2f} deg"
                     )
 
-                print("-" * 60)
+                    print("\nODOMETRY VELOCITY")
+                    print(
+                        f"Linear: {pose.v:+.3f} m/s | "
+                        f"Angular: {pose.w:+.3f} rad/s"
+                    )
 
-                time.sleep(0.5)
+                    print("\nWHEEL VELOCITIES")
+                    print(
+                        f"Left: {pose.v_left:+.3f} m/s | "
+                        f"Right: {pose.v_right:+.3f} m/s"
+                    )
+
+                    if raw is not None:
+                        print("\nARDUINO TELEMETRY")
+                        print(
+                            f"Left: {raw.left_speed:+.3f} m/s | "
+                            f"Right: {raw.right_speed:+.3f} m/s"
+                        )
+
+                        print(
+                            f"IMU Yaw: "
+                            f"{raw.imu_yaw_deg:+.2f} deg | "
+                            f"Gyro Z: "
+                            f"{raw.gyro_z_deg_s:+.2f} deg/s"
+                        )
+
+                    print("\nJOYSTICK")
+                    print(
+                        f"Command: {joy['velocity']} | "
+                        f"Active: {joy['active']} | "
+                        f"Packets: {joy['packet_count']}"
+                    )
+
+                    print("=" * 75)
+
+                    time.sleep(0.5)
 
 
 if __name__ == "__main__":
