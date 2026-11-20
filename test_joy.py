@@ -86,14 +86,14 @@ def main():
                         ) / 0.521
 
                         gyro_w = math.radians(
-                            raw.gyro_z
+                            raw.gyro_z_deg_s
                         )
 
                         print("\nSENSOR COMPARISON")
 
                         print(
-                            f"Left: {raw.v_left:+.3f} m/s | "
-                            f"Right: {raw.v_right:+.3f} m/s"
+                            f"Left: {raw.left_speed:+.3f} m/s | "
+                            f"Right: {raw.right_speed:+.3f} m/s"
                         )
 
                         print(
@@ -103,7 +103,7 @@ def main():
 
                         print(
                             f"IMU Yaw: "
-                            f"{raw.imu_yaw:+.2f} deg"
+                            f"{raw.imu_yaw_deg:+.2f} deg"
                         )
 
                     print("=" * 95)
