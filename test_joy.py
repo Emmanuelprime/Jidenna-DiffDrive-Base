@@ -1,105 +1,41 @@
-
 import time
-import threading
 
-from jidenna import JidennaDriver
-from jidenna import UDPJoystickController
+from jidenna import JidennaDriver, UDPJoystickController
 
 
-def monitor_robot(robot, stop_event):
-    """Print odometry and IMU data while driving."""
+def main():
+    with JidennaDriver(port="/dev/ttyUSB0",baudrate=115200,command_timeout=0.3,) as robot:
 
-    while not stop_event.is_set():
+        with UDPJoystickController(robot=robot,host="0.0.0.0",port=4210,max_linear=2.1,
+            max_angular=2.49,invert_linear=False,invert_angular=False,timeout=0.3) as joystick:
 
-        status = robot.get_status()
+            print("\nJidenna joystick control started")
+            print("Press Ctrl+C to stop\n")
 
-        if status["telemetry_fresh"]:
-
-            odom = robot.get_odometry_data()
-            imu = robot.get_imu_gyro()
-
-            if odom is not None and imu is not None:
+            while True:
+                status = joystick.get_status()
+                state = robot.get_state()
 
                 print(
-                    f"\n[ODOMETRY] "
-                    f"X: {odom['x']:.3f} m | "
-                    f"Y: {odom['y']:.3f} m | "
-                    f"Theta: {odom['theta']:.3f} rad"
+                    f"Joystick: {status['velocity']} | "
+                    f"Active: {status['active']}"
                 )
 
-                print(
-                    f"[IMU] "
-                    f"Yaw: {imu['yaw']:.3f} rad | "
-                    f"Gyro Z: {imu['gyro_z']:.3f} rad/s"
-                )
+                if state is not None:
+                    print(
+                        f"Left: {state.left_speed:.3f} m/s | "
+                        f"Right: {state.right_speed:.3f} m/s | "
+                        f"Yaw: {state.imu_yaw_deg:.2f} deg | "
+                        f"Gyro: {state.gyro_z_deg_s:.2f} deg/s | "
+                        f"Battery: {state.battery_v:.2f} V"
+                    )
 
                 print("-" * 65)
-
-        else:
-            print("[WARNING] Telemetry unavailable or stale")
-
-        stop_event.wait(0.2)  # Print at 5 Hz
+                time.sleep(0.5)
 
 
-robot = JidennaDriver(
-    port="/dev/ttyUSB0",
-    startup_delay=10.0
-)
-
-stop_event = threading.Event()
-monitor_thread = None
-
-try:
-    robot.connect()
-
-    controller = UDPJoystickController(
-        robot,
-        port=4210
-    )
-
-    print("Waiting for fresh telemetry and hoverboard feedback...")
-
-    deadline = time.monotonic() + 5
-
-    while time.monotonic() < deadline:
-        status = robot.get_status()
-
-        if (
-            status["telemetry_fresh"]
-            and status["motor_feedback_fresh"]
-        ):
-            break
-
-        time.sleep(0.1)
-
-    else:
-        raise RuntimeError("No fresh Arduino/motor feedback")
-
-    print("Robot ready!")
-    print("UDP joystick control active.")
-    print("Monitoring odometry and IMU data...\n")
-
-    # Start background telemetry monitor
-    monitor_thread = threading.Thread(
-        target=monitor_robot,
-        args=(robot, stop_event),
-        daemon=True
-    )
-
-    monitor_thread.start()
-
-    # Receive joystick commands and drive robot
-    controller.run()
-
-except KeyboardInterrupt:
-    print("\nStopping controller...")
-
-finally:
-    stop_event.set()
-
-    if monitor_thread is not None:
-        monitor_thread.join(timeout=1.0)
-
-    robot.disconnect()
-
-    print("Jidenna disconnected safely.")
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nStopping Jidenna...")
