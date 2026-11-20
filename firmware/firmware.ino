@@ -11,7 +11,7 @@
 #define HOVER_TX_PIN 3
 #define START_FRAME 0xABCD
 #define CONTROL_INTERVAL_MS 100
-#define TELEMETRY_INTERVAL_MS 500
+#define TELEMETRY_INTERVAL_MS 50
 #define DIAGNOSTIC_INTERVAL_MS 1000
 #define FEEDBACK_TIMEOUT_MS 500
 #define COMMAND_TIMEOUT_MS 500
@@ -20,8 +20,6 @@
 #define MAX_LINEAR_VELOCITY 2.10f
 #define MAX_ANGULAR_VELOCITY 2.49f
 #define MAX_WHEEL_VELOCITY 2.10f
-#define MAX_LINEAR_ACCEL 1.00f
-#define MAX_ANGULAR_ACCEL 2.50f
 #define STEER_GAIN 0.0043f
 #define SPEED_GAIN 0.0086f
 #define MAX_MOTOR_COMMAND 500.0f
@@ -61,8 +59,6 @@ uint8_t inputIndex = 0;
 
 float targetV = 0.0f;
 float targetW = 0.0f;
-float currentV = 0.0f;
-float currentW = 0.0f;
 float targetLeft = 0.0f;
 float targetRight = 0.0f;
 float measuredLeft = 0.0f;
@@ -92,12 +88,6 @@ float clampFloat(float value, float minimum, float maximum) {
     if (value < minimum) return minimum;
     if (value > maximum) return maximum;
     return value;
-}
-
-float approach(float current, float target, float maxStep) {
-    if (current < target) return fminf(current + maxStep, target);
-    if (current > target) return fmaxf(current - maxStep, target);
-    return current;
 }
 
 void sendHoverCommand(int16_t steer, int16_t speed) {
@@ -158,8 +148,8 @@ void updateIMU() {
 }
 
 void computeWheelTargets() {
-    targetLeft = currentV - (currentW * WHEEL_SEPARATION / 2.0f);
-    targetRight = currentV + (currentW * WHEEL_SEPARATION / 2.0f);
+    targetLeft = targetV - (targetW * WHEEL_SEPARATION / 2.0f);
+    targetRight = targetV + (targetW * WHEEL_SEPARATION / 2.0f);
     float maxWheel = fmaxf(fabsf(targetLeft), fabsf(targetRight));
     if (maxWheel > MAX_WHEEL_VELOCITY) {
         float scale = MAX_WHEEL_VELOCITY / maxWheel;
@@ -172,8 +162,6 @@ void stopMotors() {
     commandActive = false;
     targetV = 0.0f;
     targetW = 0.0f;
-    currentV = 0.0f;
-    currentW = 0.0f;
     targetLeft = 0.0f;
     targetRight = 0.0f;
     commandLeft = 0.0f;
@@ -280,12 +268,12 @@ void printDiagnostics() {
     Serial.print(commandActive ? 1 : 0);
     Serial.print(" targetV=");
     Serial.print(targetV, 3);
-    Serial.print(" currentV=");
-    Serial.print(currentV, 3);
     Serial.print(" targetW=");
     Serial.print(targetW, 3);
-    Serial.print(" currentW=");
-    Serial.println(currentW, 3);
+    Serial.print(" left_cmd=");
+    Serial.print(commandLeft, 3);
+    Serial.print(" right_cmd=");
+    Serial.println(commandRight, 3);
 }
 
 void setup() {
@@ -312,12 +300,9 @@ void loop() {
     receiveFeedback();
     updateIMU();
     if (now - lastControl >= CONTROL_INTERVAL_MS) {
-        float dt = (now - lastControl) / 1000.0f;
         lastControl = now;
-        currentV = approach(currentV, targetV, MAX_LINEAR_ACCEL * dt);
-        currentW = approach(currentW, targetW, MAX_ANGULAR_ACCEL * dt);
         computeWheelTargets();
-        bool fresh = feedbackReceived && (now - lastFeedback <= FEEDBACK_TIMEOUT_MS);
+        bool fresh = feedbackReceived && (millis() - lastFeedback <= FEEDBACK_TIMEOUT_MS);
         if (!fresh && commandActive) feedbackStaleCycles++;
         if (fresh && commandActive) {
             commandLeft = targetLeft;
