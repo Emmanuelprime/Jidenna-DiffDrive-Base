@@ -82,7 +82,7 @@ def main():
                     if raw is not None:
 
                         wheel_w = (
-                            raw.v_right - raw.v_left
+                            raw.right_speed - raw.left_speed
                         ) / 0.521
 
                         gyro_w = math.radians(
