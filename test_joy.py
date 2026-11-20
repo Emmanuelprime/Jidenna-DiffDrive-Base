@@ -19,7 +19,7 @@ def main():
         with UDPJoystickController(
             robot=robot,
             port=4210,
-            max_linear=0.65,
+            max_linear=2.1,
             max_angular=2.49,
             invert_linear=False,
             invert_angular=True,
