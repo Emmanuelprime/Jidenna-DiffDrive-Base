@@ -1,41 +1,61 @@
+
 import time
 
-from jidenna import JidennaDriver, UDPJoystickController
+from jidenna import (
+    JidennaDriver,
+    UDPJoystickController,
+)
 
 
 def main():
-    with JidennaDriver(port="/dev/ttyUSB0",baudrate=115200,command_timeout=0.3,) as robot:
 
-        with UDPJoystickController(robot=robot,host="0.0.0.0",port=4210,max_linear=2.1,
-            max_angular=2.49,invert_linear=False,invert_angular=False,timeout=0.3) as joystick:
+    with JidennaDriver(
+        port="/dev/ttyUSB0",
+        baudrate=115200,
+        command_rate=20.0,
+        command_timeout=0.5,
+    ) as robot:
 
-            print("\nJidenna joystick control started")
+        with UDPJoystickController(
+            robot=robot,
+            port=4210,
+            max_linear=0.65,
+            max_angular=2.49,
+            invert_linear=False,
+            invert_angular=True,
+            timeout=0.5,
+            command_rate=20.0,
+        ) as joystick:
+
+            print("\nJoystick controller started")
             print("Press Ctrl+C to stop\n")
 
             while True:
-                status = joystick.get_status()
+                joy = joystick.get_status()
                 state = robot.get_state()
 
                 print(
-                    f"Joystick: {status['velocity']} | "
-                    f"Active: {status['active']}"
+                    f"JOY: {joy['velocity']} | "
+                    f"Active: {joy['active']} | "
+                    f"Packets: {joy['packet_count']} | "
+                    f"Age: {joy['packet_age_s']}"
                 )
 
-                if state is not None:
+                if state:
                     print(
-                        f"Left: {state.left_speed:.3f} m/s | "
-                        f"Right: {state.right_speed:.3f} m/s | "
-                        f"Yaw: {state.imu_yaw_deg:.2f} deg | "
-                        f"Gyro: {state.gyro_z_deg_s:.2f} deg/s | "
-                        f"Battery: {state.battery_v:.2f} V"
+                        f"LEFT: {state.left_speed:.3f} | "
+                        f"RIGHT: {state.right_speed:.3f} | "
+                        f"YAW: {state.imu_yaw_deg:.2f}"
                     )
 
-                print("-" * 65)
+                print("-" * 60)
+
                 time.sleep(0.5)
 
 
 if __name__ == "__main__":
     try:
         main()
+
     except KeyboardInterrupt:
         print("\nStopping Jidenna...")
