@@ -28,7 +28,7 @@ def print_pose(name, pose):
 def main():
 
     with JidennaDriver(
-        port="COM9",
+        port="/dev/ttyUSB0",
         baudrate=115200,
         command_rate=20.0,
         command_timeout=0.5,
